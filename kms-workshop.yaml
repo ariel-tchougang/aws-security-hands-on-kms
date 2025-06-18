@@ -1,0 +1,94 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC where the security group will be created
+
+Resources:
+  workshopbucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName:
+        Fn::Join:
+          - "-"
+          - 
+            - "kmsworkshop"
+            - !Ref "AWS::AccountId"
+
+  KMSWorkshopKeyPair:
+    Type: "AWS::EC2::KeyPair"
+    Properties:
+      KeyName: "KMSWorkshopKeyPair"
+
+  KMSWorkshopRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "KMSWorkshop-InstanceInitRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        - "arn:aws:iam::aws:policy/AWSCloudTrail_ReadOnlyAccess"
+        - "arn:aws:iam::aws:policy/AmazonEC2FullAccess"
+        - "arn:aws:iam::aws:policy/AWSKeyManagementServicePowerUser"
+
+  KMSWorkshopInstanceRole:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      InstanceProfileName: "KMSWorkshop-InstanceInitRole"
+      Roles:
+        - Ref: KMSWorkshopRole
+
+  KMSWorkshopSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Security group for KMS Workshop EC2 instance"
+      GroupName: "KMSWorkshopSecurityGroup"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: "Allow SSH access"
+
+  KMSWorkshopPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      ManagedPolicyName: "KMSWorkshop-AdditionalPermissions"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "kms:GenerateDataKey"
+              - "kms:GenerateDataKeyWithoutPlaintext"
+              - "kms:Encrypt"
+              - "kms:Decrypt"
+              - "kms:TagResource"
+              - "kms:UntagResource"
+            Resource: "*"
+      Roles:
+        - Ref: KMSWorkshopRole
+
+Outputs:
+  SecurityGroupId:
+    Description: "Security Group ID for EC2 instance"
+    Value: !Ref KMSWorkshopSecurityGroup
+  InstanceProfileName:
+    Description: "Instance Profile Name for EC2 instance"
+    Value: !Ref KMSWorkshopInstanceRole
+  S3BucketName:
+    Description: "S3 Bucket Name"
+    Value: !Ref workshopbucket
+  KeyPairName:
+    Description: "EC2 Key Pair Name"
+    Value: !Ref KMSWorkshopKeyPair

@@ -1,0 +1,52 @@
+Workshop environment setup
+00 - Install CloudFormation
+01 - Launch instance and attach Instance profile from CloudFormation resources
+02 - SSH into EC2 instance
+03 - Run AWS configure to set default region and output
+
+Create the key - and set an alias
+04 - Create a KMS key: aws kms create-key
+05 - Create an alias: aws kms create-alias --alias-name alias/KmsWorkshopCMK --target-key-id 'your-key-id'
+
+Envelope Encryption works in practice
+
+06 - If not done already by CloudFormation: Create policy (KMSWorkshop-AdditionalPermissions) for any resource with actions: 
+	- GenerateDataKey, 
+	- GenerateDataKeyWithoutPlaintext
+	- Encrypt, 
+	- Decrypt, 
+	- TagResource,
+	- UntagResource
+07 - Create the secret text: sudo echo "Sample Secret Text to Encrypt" > samplesecret.txt
+08 - Generate the data key: aws kms generate-data-key --key-id alias/KmsWorkshopCMK --key-spec AES_256 --encryption-context project=kms-workshop
+
+{
+    "Plaintext": "97**********FEFE*ROL****************OOL", 
+    "KeyId": "arn:aws:kms:eu-west-1:-your-account.id:key/-KeyId-used-to-encrypt", 
+    "CiphertextBlob": "*********************+**********M05/D********************************************D12bL*****2A**"
+}
+
+Encrypt the secret text: 
+09 - Use a command like the one below, where the argument for "echo" command is the plaintext key obtained when creating data key. 
+The output file name will be datakeyPlainText.txt.
+echo 'REPLACE_WITH_PLAINTEXT_DATAKEY' | base64 --decode > datakeyPlainText.txt
+
+10 - We will do the same for the encrypted plaintext (the CipherTextBlob) we have obtained when creating data key. 
+Therefore, the argument for "echo" command is the CipherTextBlob value of the data key genetarion's JSON output. 
+We will save it and save it in a file name datakeyEncrypted.txt:
+echo 'REPLACE_WITH_DATAKEY_CIPHER_TEXT' | base64 --decode > datakeyEncrypted.txt
+
+11 - Encrypt the secret message: openssl enc -e -aes256 -in samplesecret.txt -out encryptedSecret.txt -k fileb://datakeyPlainText.txt 
+12 - Read the encrypted text: more encryptedSecret.txt 
+13 - Delete datakeyPlainText: rm datakeyPlainText.txt
+
+14 - Decrypt the encrypted secret text: aws kms decrypt --encryption-context project=kms-workshop --ciphertext-blob fileb://datakeyEncrypted.txt
+
+{
+    "Plaintext": "97**********FEFE*ROL****************OOL", 
+    "KeyId": "arn:aws:kms:eu-west-1:your-account-id:key/your-imported-key-id"
+}
+
+15 - Restore datakeyPlainText: echo 'REPLACE_WITH_PLAINTEXT_DATAKEY' | base64 --decode > datakeyPlainText.txt
+
+16 - Decrypt encrypted message: openssl enc -d -aes256 -in encryptedSecret.txt -k fileb://datakeyPlainText.txt
