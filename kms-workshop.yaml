@@ -39,6 +39,7 @@ Resources:
         - "arn:aws:iam::aws:policy/AWSCloudTrail_ReadOnlyAccess"
         - "arn:aws:iam::aws:policy/AmazonEC2FullAccess"
         - "arn:aws:iam::aws:policy/AWSKeyManagementServicePowerUser"
+        - "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
 
   KMSWorkshopInstanceRole:
     Type: "AWS::IAM::InstanceProfile"
