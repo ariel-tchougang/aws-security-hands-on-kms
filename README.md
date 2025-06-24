@@ -2,6 +2,8 @@
 
 This repository contains a practical workshop on AWS Key Management Service (KMS), designed to be completed in under 15 minutes using the AWS CLI.
 
+![AWS KMS](aws-kms.png)
+
 ## Overview
 
 AWS Key Management Service (KMS) is a managed service that makes it easy for you to create and control the encryption keys used to encrypt your data. This workshop provides hands-on experience with KMS, focusing on envelope encryption - a security best practice for protecting sensitive data.
